@@ -2,7 +2,7 @@
 ### Dự án: TEA POS SYSTEM - O2O & CLICK & COLLECT ENTERPRISE
 > **Môn học:** SOF309 - Kiểm thử nâng cao cùng AI (FPT Polytechnic)  
 > **Sinh viên:** Phạm Thiện Quang | **MSSV:** TV00472 | **Lớp:** SD21307  
-> **Giảng viên hướng dẫn:** ThS. Trần Quang Bình (binhtq7 - Thầy Mười Giáo)  
+> **Giảng viên hướng dẫn:** ThS. Trần Quang Bình  
 > **Tham chiếu lý thuyết:** Slide 1 (Kiểm thử đơn vị) & Lab 1 (Tổng quan kiểm thử phần mềm)  
 
 ---
@@ -13,9 +13,9 @@ Dựa trên 5 mục tiêu kiểm thử cốt lõi trong ngữ cảnh hệ thốn
 
 | STT | Mục tiêu kiểm thử | Tầm quan trọng trong thực tế | Hoạt động kiểm thử cụ thể | Phân loại |
 | :---: | :--- | :--- | :--- | :---: |
-| **1** | **Xác thực an toàn và tính toàn vẹn của Phân hệ Xác thực (Auth)** | Ngăn chặn các cuộc tấn công Brute-force, chiếm quyền trái phép vào màn hình POS và rò rỉ dữ liệu khách hàng. | Viết Unit Test kiểm tra thuật toán băm Salted SHA-256, độ mạnh mật khẩu và bắt lỗi trùng lặp số điện thoại. | **Verification** |
-| **2** | **Đảm bảo tính chính xác tuyệt đối trong Xử lý Hóa đơn & Thanh toán** | Tránh thất thoát tài chính, sai lệch sổ sách kế toán, sai tiền thừa và lỗi xử lý đơn hàng giá trị cao. | Viết Unit Test & Integration Test kiểm thử hạn mức giao dịch > 1.000.000 VNĐ, xử lý đơn 0 VNĐ và xác thực OTP an toàn (Lab 1). | **Verification** |
-| **3** | **Đảm bảo tính toàn vẹn và ràng buộc dữ liệu CRUD Sản phẩm / Menu** | Ngăn chặn việc nhân viên nhập giá bán âm, trùng tên món nước, hoặc xóa nhầm danh mục đang kinh doanh. | Viết Unit Test kiểm thử các phương thức Thêm, Sửa, Xóa món nước, Topping, áp dụng ngoại lệ `ValidationException`. | **Verification** |
+| **1** | **Xác thực an toàn và phòng chống tấn công dò mật khẩu (Auth & Brute-Force)** | Ngăn chặn các cuộc tấn công Brute-force, chiếm quyền trái phép vào màn hình POS và rò rỉ dữ liệu khách hàng. | Viết Unit Test kiểm thử cơ chế băm mật khẩu Salted SHA-256 + Pepper, kiểm thử khóa tài khoản 5 phút (300 giây) khi nhập sai 5 lần liên tiếp, và bắt lỗi trùng SĐT/Email. | **Verification** |
+| **2** | **Đảm bảo tính chính xác tuyệt đối trong Xử lý Hóa đơn & Thuế VAT (POS Cashier)** | Tránh thất thoát tài chính, sai lệch sổ sách kế toán, sai tiền thừa và lỗi xử lý đơn hàng miễn phí. | Viết Unit Test kiểm thử công thức tính tổng tiền hàng, khấu trừ Voucher, đổi điểm CRM, tính thuế VAT 8% và cơ chế tự động hoàn tất đơn 0 VNĐ không sinh mã VietQR. | **Verification** |
+| **3** | **Đảm bảo tính toàn vẹn dữ liệu Sản phẩm đa kích cỡ & Lịch sử bán lẻ (Menu CRUD)** | Ngăn chặn việc nhân viên tạo món nước thiếu giá bán hoặc xóa mất dữ liệu lịch sử trên hóa đơn cũ. | Viết Unit Test kiểm thử ràng buộc tạo món phải có ít nhất 1 size cấu hình kèm giá, và kiểm tra cơ chế phân nhánh: Soft Delete nếu đã có hóa đơn, Hard Delete nếu chưa từng bán. | **Verification** |
 | **4** | **Kiểm thử trải nghiệm người dùng tự động trên giao diện Web (UI Test)** | Đảm bảo khách hàng đặt nước online và thu ngân tại quầy thao tác trơn tru, không gặp lỗi giật lag hay vỡ layout. | Xây dựng bộ kiểm thử Selenium WebDriver theo mô hình Page Object Model (POM) tự động tương tác trình duyệt Chrome. | **Validation** |
 | **5** | **Tự động hóa hồi quy và Tích hợp liên tục (CI/CD Regression Testing)** | Đảm bảo mỗi khi lập trình viên cập nhật mã nguồn mới lên GitHub, toàn bộ hệ thống test cũ không bị gãy (Break). | Thiết lập GitHub Actions Pipeline (`.github/workflows/test.yml`) chạy tự động `mvn test` trên môi trường Ubuntu Headless. | **Verification** |
 
@@ -31,15 +31,23 @@ Dựa trên 5 mục tiêu kiểm thử cốt lõi trong ngữ cảnh hệ thốn
 ## 3. PHẠM VI KIỂM THỬ (TEST SCOPE)
 
 ### 3.1. Trong phạm vi kiểm thử (In-Scope)
-* **Phân hệ Xác thực (Authentication):**
+* **Phân hệ Xác thực & Phân quyền (Authentication & Authorization):**
   * Đăng nhập Admin / Thu ngân với thông tin hợp lệ / không hợp lệ.
-  * Đăng ký tài khoản Khách hàng: Kiểm tra định dạng SĐT (10 số), mật khẩu phức tạp, kiểm tra trùng lặp.
+  * Cơ chế khóa tài khoản 300 giây khi đăng nhập sai 5 lần liên tiếp.
+  * Đăng ký tài khoản Khách hàng: Kiểm tra định dạng SĐT (10 số), mật khẩu xác nhận khớp, bắt buộc đồng ý điều khoản, kiểm tra trùng lặp SĐT/Email.
 * **Phân hệ POS & Xử lý Giao dịch (POS & Payment):**
   * Tùy biến ly nước: Size (S/M/L), Đường (0-100%), Đá (0-100%), Topping.
-  * Giảm giá Voucher & Tiêu điểm thành viên CRM.
-  * Thanh toán tiền mặt (tính tiền thừa), thanh toán VietQR động, xử lý ngoại lệ hạn mức đơn hàng > 1.000.000 VNĐ.
+  * Giảm giá Voucher (theo % có trần giảm tối đa và theo tiền mặt) & Tiêu điểm CRM (1 điểm = 1.000 VNĐ).
+  * Công thức tính thuế VAT 8% trên số tiền sau giảm trừ.
+  * Xử lý tự động đơn hàng 0 VNĐ (chuyển Tiền mặt/Miễn phí, không sinh mã VietQR).
+  * Thanh toán tiền mặt (tính tiền thừa), thanh toán VietQR động.
 * **Phân hệ Quản trị CRUD (Admin Products & Toppings):**
-  * Thêm, sửa, xóa sản phẩm món nước, bắt ngoại lệ giá bán <= 0, tên món trùng.
+  * Thêm món nước: Ràng buộc bắt buộc tên, danh mục và tối thiểu 1 kích cỡ có giá bán đi kèm.
+  * Xóa món nước: Rẽ nhánh Soft Delete (nếu đã có đơn hàng) vs Hard Delete (nếu chưa có đơn hàng).
+* **Phân hệ Đặt hàng Online (Portal Click & Collect):**
+  * Bắt buộc hẹn giờ lấy nước sau thời điểm hiện tại tối thiểu 15 phút.
+  * Chống Double Checkout với Token UUID.
+  * Xử lý luồng Mua ngay (Buy Now Session).
 * **Kiểm thử tự động giao diện (Selenium UI Automation):**
   * Kịch bản đăng nhập, tìm kiếm món nước và thêm món vào giỏ hàng trên giao diện Web.
 
@@ -52,8 +60,12 @@ Dựa trên 5 mục tiêu kiểm thử cốt lõi trong ngữ cảnh hệ thốn
 ## 4. CHIẾN LƯỢC VÀ KỸ THUẬT KIỂM THỬ (TEST STRATEGY)
 
 1. **Kỹ thuật Hộp đen (Black-box Testing):**
-   * **Phân vùng tương đương (Equivalence Partitioning - EP):** Chia trường dữ liệu (SĐT, Mật khẩu, Giá bán, % Giảm giá) thành các vùng dữ liệu hợp lệ và không hợp lệ.
-   * **Phân tích giá trị biên (Boundary Value Analysis - BVA):** Kiểm tra kỹ các giá trị tại ngưỡng biên (ví dụ: mật khẩu 7 ký tự vs 8 ký tự; số tiền 0đ vs 1đ; hạn mức 1.000.000đ vs 1.000.001đ).
+   * **Phân vùng tương đương (Equivalence Partitioning - EP):** Chia trường dữ liệu (SĐT, Mật khẩu, Giá bán kích cỡ, % Giảm giá, Thời gian hẹn lấy) thành các vùng dữ liệu hợp lệ và không hợp lệ.
+   * **Phân tích giá trị biên (Boundary Value Analysis - BVA):** Kiểm tra kỹ các giá trị tại ngưỡng biên:
+     * Số lần đăng nhập sai: 4 lần (chưa khóa) vs 5 lần (khóa 300s).
+     * Mức giảm tối đa Voucher: Giảm 20% trên đơn 500.000đ trần 50.000đ $\rightarrow$ chốt giảm đúng 50.000đ.
+     * Số tiền thanh toán: Đơn hàng 0 VNĐ (miễn phí) vs 1.000 VNĐ.
+     * Thời gian hẹn lấy nước: Cách thời điểm hiện tại 14 phút (Báo lỗi) vs 15 phút (Hợp lệ).
 2. **Chiến lược Kiểm thử Đơn vị (Unit Test với JUnit 5 - Slide 1):**
    * Độc lập (Isolation): Mỗi ca test là một phương thức riêng biệt, độc lập nhờ `@BeforeEach`.
    * Sử dụng `@DisplayName` tiếng Việt rõ ràng, bám sát mã Test Case (ví dụ `TC_AUTH_01`, `TC_PAY_01`).

@@ -1,6 +1,6 @@
 # SOF309: KIỂM THỬ NÂNG CAO CÙNG AI
 > **Master Template Assignment dành cho Sinh viên FPT Polytechnic**  
-> Giảng viên hướng dẫn: **ThS. Trần Quang Bình (binhtq7 - Thầy Mười Giáo)**  
+> Giảng viên hướng dẫn: **ThS. Trần Quang Bình**  
 > Sinh viên thực hiện: **Phạm Thiện Quang** | MSSV: **TV00472** | Lớp: **SD21307**  
 > 📖 [Xem Cẩm nang hướng dẫn chi tiết từng tuần (Tuần 1 đến Tuần 6)](./docs/HUONG_DAN_CHI_TIET_6_TUAN.md)
 

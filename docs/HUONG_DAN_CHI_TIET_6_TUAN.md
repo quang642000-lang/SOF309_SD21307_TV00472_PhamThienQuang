@@ -2,7 +2,7 @@
 ## MÔN HỌC: SOF309 - KIỂM THỬ NÂNG CAO CÙNG AI
 > **Phương pháp tiếp cận:** *Assignment-Centric (Tập trung toàn lực vào Assignment)*  
 > **Kế thừa tinh hoa:** Tích hợp toàn bộ kỹ thuật kiểm thử cốt lõi từ 8 bài Lab của môn Kiểm thử nâng cao vào dự án Web cá nhân  
-> **Giảng viên hướng dẫn:** ThS. Trần Quang Bình (binhtq7 - Thầy Mười Giáo)
+> **Giảng viên hướng dẫn:** ThS. Trần Quang Bình
 
 ---
 

@@ -1,94 +1,117 @@
 # TÀI LIỆU ĐẶC TẢ NGHIỆP VỤ HỆ THỐNG TEA POS (SPECIFICATIONS)
-> **Dự án kiểm thử:** TEA POS SYSTEM - O2O & CLICK & COLLECT ENTERPRISE  
+> **Dự án:** TEA POS SYSTEM - O2O & CLICK & COLLECT ENTERPRISE  
 > **Môn học:** SOF309 - Kiểm thử nâng cao cùng AI (FPT Polytechnic)  
 > **Sinh viên thực hiện:** Phạm Thiện Quang | **MSSV:** TV00472 | **Lớp:** SD21307  
-> **Giảng viên hướng dẫn:** ThS. Trần Quang Bình (binhtq7 - Thầy Mười Giáo)  
+> **Giảng viên hướng dẫn:** ThS. Trần Quang Bình  
 
 ---
 
 ## 1. THÔNG TIN CHUNG DỰ ÁN
 * **Tên ứng dụng:** TEA POS Enterprise & Portal O2O Click & Collect System
-* **Mô hình kiến trúc:** 3-Tier Enterprise Architecture (MVC Pattern)
-* **Công nghệ nền tảng:** Java 21 LTS / Java 17, Jakarta EE 10 (Servlet 6.0, JSP 3.1, JSTL), Microsoft SQL Server 2022 (19 bảng chuẩn hóa), Connection Pool HikariCP 5.1.0, Apache Tomcat 10/11.
-* **Công nghệ kiểm thử:** JUnit 5 (5.10.2), Selenium WebDriver 4 (4.20.0), Maven Surefire, GitHub Actions CI/CD.
+* **Kiến trúc hệ thống:** 3-Tier Enterprise Architecture (MVC Pattern)
+* **Công nghệ nền tảng:** Java 21 LTS / Java 17, Jakarta EE 10 (Servlet 6.0, JSP 3.1, JSTL), Microsoft SQL Server 2022 (19 bảng chuẩn hóa, Sequences tự tăng NO CACHE), Connection Pool HikariCP 5.1.0, Apache Tomcat 10/11.
+* **Công nghệ kiểm thử:** JUnit 5 (5.10.2), Selenium WebDriver 4 (4.20.0), Maven Surefire Plugin, GitHub Actions CI/CD.
 * **Cổng chạy local:** `http://localhost:8080/SOF309_SD21307_TV00472_PhamThienQuang` hoặc `http://localhost:8080`
 
 ---
 
-## 2. QUY TẮC NGHIỆP VỤ CHI TIẾT (BUSINESS RULES)
+## 2. QUY TẮC NGHIỆP VỤ CHI TIẾT THEO MÃ NGUỒN THỰC TẾ (BUSINESS RULES)
 
-### A. Phân hệ Xác thực & Phân quyền (Authentication & Authorization)
-1. **Đăng nhập Quản trị & Quầy Thu ngân (`/views/auth/login_admin.jsp`):**
-   * `username`: Bắt buộc, không được để trống, không chứa khoảng trắng.
-   * `password`: Bắt buộc, không được để trống, độ dài tối thiểu 6 ký tự.
-   * Cơ chế mã hóa: Băm mật khẩu chuẩn Salted SHA-256 kết hợp Pepper hệ thống nhằm chống tấn công Rainbow Table & Timing Side-channel.
-   * Phân quyền (RBAC):
-     * `ADMIN`: Toàn quyền hệ thống (Menu, Nhân sự, Doanh thu, Cài đặt).
-     * `THUNGAN`: Quyền truy cập màn hình POS bán hàng, thanh toán, in hóa đơn.
-     * `QUANLY`: Quản lý kho nguyên liệu, phê duyệt voucher, xem báo cáo ca.
-   * Tài khoản kiểm thử mặc định: `admin` / `Admin@123` (Admin), `thungan1` / `Thungan@123` (Thu ngân).
+### A. Phân hệ Xác thực, Phân quyền & Bảo mật (Authentication & Security)
+1. **Đăng nhập Nội bộ Nhân viên (`/login` $\rightarrow$ `LoginController`):**
+   * Tham số đầu vào: `username`, `password`. Bắt buộc không được để trống.
+   * Cơ chế mã hóa: Thuật toán băm Salted SHA-256 kết hợp Pepper hệ thống (`[$tea_pos_salt_key$]`) trong `SecurityUtil` chống tấn công Rainbow Table.
+   * Cơ chế chống Brute-Force: Theo dõi số lần đăng nhập thất bại liên tiếp trong `NhanVienServiceImpl`. Nhập sai 5 lần liên tiếp sẽ tạm khóa tài khoản 5 phút (300 giây) kèm đồng hồ đếm ngược.
+   * Phân quyền điều hướng (RBAC):
+     * Vai trò `ma_vt = 1` (Admin): Chuyển hướng về `/admin/dashboard`.
+     * Vai trò `ma_vt = 2` (Thu ngân): Chuyển hướng về `/pos`.
+   * Ghi vết kiểm toán: Tự động lưu địa chỉ IP máy trạm, thời gian và mã nhân viên vào bảng `NHAT_KY_HOAT_DONG`.
 
-2. **Đăng nhập & Đăng ký Khách hàng Portal (`/views/auth/login_customer.jsp`, `/views/auth/register.jsp`):**
-   * `soDienThoai`: Bắt buộc đúng 10 chữ số, bắt đầu bằng các đầu số viễn thông Việt Nam (`03`, `05`, `07`, `08`, `09`). Không được trùng lặp trong cơ sở dữ liệu.
-   * `email`: Định dạng RFC 5322 hợp lệ (phải chứa ký tự `@` và tên miền hợp lệ).
-   * `password`: Tối thiểu 8 ký tự, bắt buộc chứa ít nhất 1 chữ hoa, 1 chữ thường, 1 chữ số và 1 ký tự đặc biệt.
-   * `confirmPassword`: Phải hoàn toàn trùng khớp với `password`.
-   * Kích hoạt & OTP: Mã OTP gồm 6 chữ số gửi qua SMTP Gmail (Jakarta Mail), thời gian hết hạn là 300 giây (5 phút). Nhập sai quá 5 lần sẽ khóa yêu cầu 15 phút.
-
----
-
-### B. Phân hệ Quầy Thu Ngân Bán Lẻ (POS Cashier Pro) & Xử lý Giao dịch
-1. **Tạo đơn hàng & Tùy biến ly nước:**
-   * Chọn món từ danh mục (Trà sữa, Trà trái cây, Cà phê, Sinh tố...).
-   * Ràng buộc Size:
-     * Size S: Giá gốc (+0 VNĐ).
-     * Size M: Phụ thu chuẩn (+6.000 VNĐ).
-     * Size L: Phụ thu chuẩn (+12.000 VNĐ).
-   * Cấp độ Đường / Đá: Nhận các giá trị hợp lệ cố định (`0%`, `30%`, `50%`, `70%`, `100%`).
-   * Chọn Topping: Cho phép chọn nhiều topping (Trân châu đen +5.000đ, Trân châu trắng +8.000đ, Cheese foam +10.000đ...), giá topping không được âm.
-   * Số lượng mỗi ly nước: Số nguyên dương >= 1 và <= 99 ly cho một món trong cùng đơn hàng.
-
-2. **Hội viên CRM & Khuyến mãi (Loyalty & Voucher):**
-   * Tra cứu khách hàng theo SĐT bằng AJAX: Trả về thông tin khách, hạng thành viên (Đồng, Bạc, Vàng, Kim Cương) và số điểm tích lũy hiện có.
-   * Quy tắc tiêu điểm: 1 điểm tích lũy = 1.000 VNĐ giảm trừ trực tiếp. Số điểm tiêu không được vượt quá tổng giá trị đơn hàng hoặc số dư khả dụng.
-   * Quy tắc Voucher:
-     * Kiểm tra ngày hiệu lực (`ngayBatDau <= ngayHienTai <= ngayKetThuc`).
-     * Kiểm tra giá trị đơn tối thiểu (`tongTien >= donToiThieu`).
-     * Kiểm tra số lượt sử dụng còn lại (`soLuotConLai > 0`).
-     * Giảm theo `%`: Giới hạn mức giảm tối đa (`giamToiDa`).
-     * Giảm tiền mặt: Trừ thẳng số tiền quy định.
-
-3. **Xử lý Thanh toán & Kiểm thử Hạn mức (Bám sát Lab 1 - Testing vs Debugging):**
-   * Tổng tiền hóa đơn sau giảm giá (`finalAmount`): Phải >= 0 VNĐ.
-   * **Đơn hàng 0 VNĐ:** Tự động hoàn tất (PAID), bỏ qua bước sinh mã VietQR.
-   * **Thanh toán tiền mặt:** Thu ngân nhập `tienKhachDua >= finalAmount`, hệ thống tự tính `tienThua = tienKhachDua - finalAmount`. Ném lỗi nếu tiền khách đưa nhỏ hơn tiền phải trả.
-   * **Thanh toán VietQR động:** Hệ thống tạo mã QR động chứa số tài khoản, mã đơn và số tiền chính xác. Khi đơn hàng có giá trị cao (> 1.000.000 VNĐ), hệ thống yêu cầu xác nhận 2 lớp an toàn (OTP quản lý hoặc đối soát tự động qua Webhook SePay).
+2. **Đăng nhập & Đăng ký Khách hàng Portal (`/customer/login`, `/register`):**
+   * Đăng nhập khách hàng: Sử dụng `username` (Email hoặc Số điện thoại) và `password`. Bắt buộc tài khoản đã được kích hoạt OTP.
+   * Đăng ký khách hàng (`/register`):
+     * Tham số: `tenKh`, `soDienThoai` (10 số), `email` (định dạng RFC), `password`, `confirmPassword`, `dongYDieuKhoan` (bắt buộc tick chọn).
+     * Ràng buộc: `password` và `confirmPassword` phải khớp nhau. `soDienThoai` và `email` không được trùng lặp với bản ghi đã có trong CSDL.
+     * Tài khoản mới khởi tạo ở trạng thái `trang_thai = 0` (Chờ kích hoạt), tự động cấp giỏ hàng rỗng và gán hạng thành viên Đồng (`ma_hang = 1`).
+   * Xác thực OTP kích hoạt tài khoản: Mã OTP 6 chữ số gửi qua SMTP Jakarta Mail, thời hạn hiệu lực 5 phút (300 giây). Xác thực thành công mới chuyển `trang_thai = 1`.
 
 ---
 
-### C. Phân hệ Cổng Đặt Nước Trực Tuyến O2O (Portal Click & Collect)
-1. **Menu & Tìm kiếm sản phẩm:**
-   * Tìm kiếm Tiếng Việt không dấu (`Vietnamese_CI_AI`): Nhập `"tra sua"` hay `"trà sữa"` đều trả về đúng kết quả tức thì.
-   * Lọc theo Danh mục và sắp xếp theo Giá (Tăng dần / Giảm dần).
-2. **Giỏ hàng & Hẹn giờ nhận nước (Click & Collect):**
-   * Khách hàng tự do thêm, bớt, xóa món khỏi giỏ hàng.
-   * **Quy tắc thời gian hẹn lấy nước:** Thời gian khách hẹn lấy phải sau thời điểm đặt tối thiểu 15 phút (để quầy pha chế chuẩn bị) và không vượt quá 24 giờ.
-   * Khi hoàn tất thanh toán online, đơn hàng lập tức đồng bộ về màn hình POS của thu ngân ở trạng thái `PREPARING` (Đang pha chế).
+### B. Phân hệ Quầy Thu Ngân Bán Lẻ (POS Cashier Pro - `/pos`)
+1. **Tra cứu Menu & Tùy biến Ly nước:**
+   * Lọc sản phẩm theo danh mục (`ma_dm`). Chỉ hiển thị sản phẩm và danh mục có `trang_thai = 1`.
+   * Tìm kiếm món: Hỗ trợ tìm kiếm tiếng Việt không dấu và có dấu tức thì.
+   * Tùy biến ly nước:
+     * Kích cỡ (Size): Giá ly tính theo bảng giá cấu hình trong `SAN_PHAM_KICH_CO` của từng size.
+     * Mức Đường / Mức Đá: Nhận các giá trị hợp lệ cố định (`0%`, `30%`, `50%`, `70%`, `100%`).
+     * Topping: Tích chọn từ bảng `TOPPING` (chỉ hiển thị topping có `trang_thai = 1`), hỗ trợ tăng số lượng từng loại topping.
+     * Ghi chú pha chế: Ghi chú riêng cho ly nước được lưu vào `ghi_chu_mon` và in lên tem dán ly / hóa đơn.
+
+2. **Hội viên CRM & Đổi điểm thưởng tại quầy:**
+   * Tra cứu khách hàng AJAX qua URL `/pos/search-customer?phone=...`: Hiển thị họ tên, số điện thoại, hạng thẻ và điểm tích lũy hiện có.
+   * Tạo nhanh khách hàng tại quầy qua URL `/pos/create-customer`: Tạo nhanh họ tên và SĐT mà không làm mất giỏ hàng đang chọn.
+   * Quy tắc tiêu điểm CRM: **1 điểm tích lũy = 1.000 VNĐ**. Số điểm sử dụng không được vượt quá số dư điểm hiện có và không được trừ vượt quá tổng tiền đơn hàng.
+
+3. **Áp dụng Mã giảm giá (Voucher) tại quầy (`/pos/apply-voucher`):**
+   * Kiểm tra điều kiện: Voucher còn hạn (`ngay_bat_dau <= now <= ngay_ket_thuc`), còn số lượng phát hành (`so_luong > so_luong_da_dung`), và tổng tiền hàng đạt giá trị tối thiểu (`tongTienHang >= don_toi_thieu`).
+   * Cơ chế giảm giá:
+     * `loai_giam = 1`: Giảm tiền mặt cố định (`gia_tri_giam`).
+     * `loai_giam = 2`: Giảm theo % (`tongTienHang * gia_tri_giam / 100`). Nếu có `giam_toi_da > 0` và số tiền giảm vượt mức trần thì chốt giảm bằng `giam_toi_da`.
+     * Tiền giảm giá không bao giờ vượt quá tổng tiền hàng (`tienGiamGia <= tongTienHang`).
+
+4. **Xử lý Thanh toán Hóa đơn (`/pos/checkout`):**
+   * Tính toán tài chính:
+     * `billBeforeTax = tongTienHang - tienGiamGia - tienTruDiem` (tối thiểu = 0).
+     * Thuế VAT: Tính chuẩn 8% trên số tiền sau giảm trừ (`vatPrice = (int) Math.round(billBeforeTax * 0.08)`).
+     * `tongPhaiTra = billBeforeTax + vatPrice`.
+   * **Nghiệp vụ Đơn hàng 0 VNĐ:** Nếu `tongPhaiTra <= 0` (do voucher hoặc điểm trừ hết), hệ thống tự động gán `maPt = 1` (Tiền mặt/Miễn phí), chuyển `trangThaiThanhToan = 1` (Đã thanh toán) và `trangThaiDon = 4` (Hoàn thành đơn), tuyệt đối không bắt sinh mã VietQR 0đ.
+   * **Thanh toán tiền mặt (`maPt = 1`):** Thu ngân nhập tiền khách đưa, tính `tienThua = tienKhachDua - tongPhaiTra`. Tự động chốt hoàn thành và cộng điểm CRM.
+   * **Thanh toán VietQR (`maPt = 2`):** Sinh mã QR ngân hàng chuẩn Napas gắn mã đơn và số tiền cần trả.
+   * **Tích điểm tự động:** Đơn hoàn tất tự động cộng điểm cho khách vào CSDL: `diemCong = billBeforeTax / 10000` (1 điểm cho mỗi 10.000 VNĐ chi tiêu thực tế).
 
 ---
 
-### D. Phân hệ Quản trị CRUD (Admin Enterprise Module)
-1. **Quản lý Sản phẩm / Món nước (`/admin/san-pham`):**
-   * `maSanPham`: Tự sinh hoặc định danh duy nhất (không trùng lặp).
-   * `tenSanPham`: Bắt buộc, độ dài từ 3 đến 100 ký tự, không được trùng lặp tên với sản phẩm đang hoạt động.
-   * `giaBan`: Số thực dương bắt buộc > 0 VNĐ (Không chấp nhận giá 0đ hoặc giá âm).
-   * `idDanhMuc`: Bắt buộc chọn từ danh mục có sẵn.
-   * `trangThai`: `true` (Đang kinh doanh), `false` (Ngừng kinh doanh).
-2. **Quản lý Topping (`/admin/topping`):**
-   * `tenTopping`: Bắt buộc, không để trống.
-   * `giaTopping`: Bắt buộc >= 0 VNĐ.
-3. **Quản lý Voucher (`/admin/voucher`):**
-   * `maVoucher`: Ký tự chữ và số in hoa (5 - 15 ký tự), duy nhất.
-   * `phanTramGiam`: Từ 1% đến 100% (nếu loại là phần trăm).
-   * `soTienGiam`: > 0 VNĐ (nếu loại là tiền cố định).
-   * `ngayKetThuc`: Phải lớn hơn hoặc bằng `ngayBatDau`.
+### C. Phân hệ Đặt Nước Trực Tuyến O2O (Click & Collect Portal)
+1. **Menu, Giỏ hàng & Mua ngay (`/portal`, `/products`, `/cart`):**
+   * Menu: Phân loại theo Bestsellers (`is_bestseller = 1`) và New Arrivals (`is_new = 1`).
+   * Quản lý giỏ hàng (`/cart`): Lưu trữ giỏ hàng trong CSDL (bảng `GIO_HANG`, `CHI_TIET_GIO_HANG`, `CHI_TIET_TOPPING_GIO_HANG`). Hỗ trợ chọn mua một phần giỏ hàng thông qua cờ `is_chon_mua`.
+   * Mua ngay (Buy Now): Lưu ly nước tạm thời trong Session (`buyNowItem`), chuyển thẳng tới trang checkout mà không làm mất giỏ hàng chính trong CSDL.
+
+2. **Hẹn giờ đến lấy nước (Click & Collect - `/checkout`, `/checkout/place`):**
+   * **Ràng buộc bắt buộc:** Khách hàng bắt buộc phải chọn khung giờ hẹn lấy nước (`thoiGianHenLay`).
+   * Thời gian hẹn lấy phải sau thời điểm đặt hàng tối thiểu 15 phút để quầy pha chế kịp chuẩn bị.
+   * Chống trùng lặp đơn hàng (Anti Double-Checkout): Sử dụng Token UUID `checkoutToken` kết hợp vô hiệu hóa cache trình duyệt (`Cache-Control: no-cache, no-store`).
+
+3. **Cổng thanh toán tự động VietQR & Webhook SePay:**
+   * Tạo mã VietQR động chứa số tài khoản, số tiền và nội dung chuyển khoản là mã đơn hàng.
+   * Đồng hồ đếm ngược giao dịch 10 phút.
+   * Client polling định kỳ mỗi 2 giây gọi API kiểm tra trạng thái thanh toán từ bộ đệm RAM `PaymentStore` (tránh nghẽn CSDL).
+   * Webhook tiếp nhận thông báo từ SePay, tự động chuyển đơn sang `trang_thai_thanh_toan = 1`.
+
+4. **Điều phối đơn Online tại quầy thu ngân (`/pos/nhandon`):**
+   * Hiển thị danh sách các đơn hàng online (`loai_don_hang = 3`).
+   * Luân chuyển trạng thái đơn hàng:
+     * `0`: Chờ xác nhận $\rightarrow$ `1`: Đã xác nhận $\rightarrow$ `2`: Đang làm $\rightarrow$ `3`: Chờ lấy $\rightarrow$ `4`: Hoàn thành $\rightarrow$ `5`: Đã hủy (bắt buộc nhập `ly_do_huy`, hoàn lại voucher và điểm thưởng).
+
+---
+
+### D. Phân hệ Quản trị Admin (Admin Enterprise Module)
+1. **Quản trị Thực đơn Sản phẩm (`/admin/sanpham`):**
+   * Các hành động (`action`): `list`, `create`, `edit`, `toggle`, `delete`.
+   * Bảng `SAN_PHAM` lưu thông tin cha; giá bán chi tiết được lưu trong bảng biến thể `SAN_PHAM_KICH_CO`.
+   * Ràng buộc tạo mới sản phẩm: Bắt buộc có tên sản phẩm (`tenSp`), danh mục (`maDm`), và bắt buộc cấu hình tối thiểu 1 kích cỡ kèm giá bán (`gia_ban >= 0`).
+   * Cơ chế xóa sản phẩm (`performDelete`):
+     * Nếu sản phẩm đã phát sinh hóa đơn trong `CHI_TIET_DON_HANG`: Thực hiện **Soft Delete** (cập nhật `trang_thai = 0` để bảo toàn dữ liệu kế toán lịch sử).
+     * Nếu sản phẩm chưa từng có hóa đơn: Thực hiện **Hard Delete** (xóa sạch khỏi bảng `SAN_PHAM_KICH_CO` và `SAN_PHAM`).
+
+2. **Quản trị Danh mục (`/admin/danhmuc`):**
+   * CRUD danh mục đồ uống. Khi tắt trạng thái một danh mục, toàn bộ sản phẩm thuộc danh mục đó sẽ tự động ẩn trên POS và Portal.
+
+3. **Quản trị Topping (`/admin/topping`):**
+   * Quản lý danh sách topping kèm đơn giá (`gia_ban >= 0`) và trạng thái còn hàng/hết hàng.
+
+4. **Quản trị Voucher Khuyến mãi (`/admin/voucher`):**
+   * Thiết lập mã code in hoa duy nhất, loại giảm (tiền mặt / %), đơn tối thiểu, giảm tối đa, số lượng và thời hạn sử dụng.
+
+5. **Nhật ký kiểm toán (`/admin/auditlog`):**
+   * Lưu vết mọi thao tác thêm, sửa, xóa dữ liệu và đăng nhập/đăng xuất kèm địa chỉ IP vào bảng `NHAT_KY_HOAT_DONG`. Tự động che giấu mật khẩu.
