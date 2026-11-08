@@ -1,0 +1,22 @@
+# =========================================================================
+# TEA POS ENTERPRISE - APPLICATION CONFIGURATION TEMPLATE
+# HƯỚNG DẪN: Sao chép tệp này thành 'application.properties' và điền cấu hình máy bạn.
+# Tệp 'application.properties' đã được đưa vào .gitignore để không bao giờ bị lộ mật khẩu.
+# =========================================================================
+
+# Cấu hình Cơ sở dữ liệu Microsoft SQL Server
+db.url=${DB_URL:jdbc:sqlserver://localhost:1433;databaseName=QuanLyQuanCafehetcuu1;encrypt=true;trustServerCertificate=true}
+db.instanceUrl=${DB_INSTANCE_URL:jdbc:sqlserver://localhost\\MSSQLSERVER01;databaseName=QuanLyQuanCafehetcuu1;encrypt=true;trustServerCertificate=true}
+db.user=${DB_USER:sa}
+db.password=${DB_PASSWORD:your_database_password}
+
+# Cấu hình Email gửi OTP (Jakarta Mail qua Google SMTP)
+email.user=${EMAIL_USER:your_email@gmail.com}
+email.password=${EMAIL_PASSWORD:your_google_app_password}
+
+# Cấu hình Cổng thanh toán SePay Webhook
+sepay.token=${SEPAY_TOKEN:your_sepay_token}
+sepay.bypass=true
+
+# Thư mục lưu trữ hình ảnh sản phẩm & danh mục tập trung trên máy chủ
+upload.dir=C:/tea_pos_images

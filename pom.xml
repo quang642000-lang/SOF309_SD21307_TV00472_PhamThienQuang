@@ -6,27 +6,105 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.poly</groupId>
-    <artifactId>sof309-assignment</artifactId>
+    <artifactId>SOF309_SD21307_TV00472_PhamThienQuang</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <packaging>jar</packaging>
+    <packaging>war</packaging>
 
-    <name>SOF309 Assignment - AI Driven Test Automation</name>
+    <name>TEA POS - SOF309 AI Driven Test Automation</name>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <junit.jupiter.version>5.10.2</junit.jupiter.version>
         <selenium.version>4.20.0</selenium.version>
     </properties>
 
     <dependencies>
         <!-- ============================================== -->
+        <!-- 1. JAKARTA SERVLET & JSP API (TOMCAT 10/11)    -->
+        <!-- ============================================== -->
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <version>6.0.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.servlet.jsp</groupId>
+            <artifactId>jakarta.servlet.jsp-api</artifactId>
+            <version>3.1.1</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ============================================== -->
+        <!-- 2. JAKARTA JSTL RUNTIME                       -->
+        <!-- ============================================== -->
+        <dependency>
+            <groupId>jakarta.servlet.jsp.jstl</groupId>
+            <artifactId>jakarta.servlet.jsp.jstl-api</artifactId>
+            <version>3.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.web</groupId>
+            <artifactId>jakarta.servlet.jsp.jstl</artifactId>
+            <version>3.0.1</version>
+        </dependency>
+
+        <!-- ============================================== -->
+        <!-- 3. SQL SERVER JDBC DRIVER & HIKARICP POOL     -->
+        <!-- ============================================== -->
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+            <version>12.4.2.jre11</version>
+        </dependency>
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>5.1.0</version>
+        </dependency>
+
+        <!-- ============================================== -->
+        <!-- 4. GSON FOR AUDIT LOG & API JSON              -->
+        <!-- ============================================== -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.10.1</version>
+        </dependency>
+
+        <!-- ============================================== -->
+        <!-- 5. ECLIPSE ANGUS MAIL GỬI OTP (JAKARTA EE 10)  -->
+        <!-- ============================================== -->
+        <dependency>
+            <groupId>org.eclipse.angus</groupId>
+            <artifactId>jakarta.mail</artifactId>
+            <version>2.0.3</version>
+        </dependency>
+
+        <!-- ============================================== -->
+        <!-- 6. SLF4J LOGGING                              -->
+        <!-- ============================================== -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>2.0.12</version>
+        </dependency>
+
+        <!-- ============================================== -->
         <!-- [Y3] JUNIT 5 TESTING FRAMEWORK                -->
         <!-- ============================================== -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <version>${junit.jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
             <version>${junit.jupiter.version}</version>
             <scope>test</scope>
         </dependency>
@@ -40,11 +118,10 @@
             <version>${selenium.version}</version>
             <scope>test</scope>
         </dependency>
-
-        <!-- (Tùy chọn) Web Server & DB cũ của sinh viên có thể dán thêm vào đây -->
     </dependencies>
 
     <build>
+        <finalName>SOF309_SD21307_TV00472_PhamThienQuang</finalName>
         <plugins>
             <!-- Maven Compiler Plugin -->
             <plugin>
@@ -54,6 +131,17 @@
                 <configuration>
                     <source>17</source>
                     <target>17</target>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+
+            <!-- Maven War Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <version>3.4.0</version>
+                <configuration>
+                    <failOnMissingWebXml>false</failOnMissingWebXml>
                 </configuration>
             </plugin>
 
@@ -66,4 +154,3 @@
         </plugins>
     </build>
 </project>
-
