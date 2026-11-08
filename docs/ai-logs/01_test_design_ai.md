@@ -1,4 +1,4 @@
-# MINH CHỨNG SỬ DỤNG AI: THIẾT KẾ TEST PLAN & TEST CASE BẰNG AI RAG (Y2 & Y6)
+# MINH CHỨNG SỬ DỤNG AI: THIẾT KẾ TEST PLAN & TEST CASE BẰNG AI RAG (TUẦN 1)
 > **Môn học:** SOF309 - Kiểm thử nâng cao cùng AI (FPT Polytechnic)  
 > **Sinh viên thực hiện:** Phạm Thiện Quang | **MSSV:** TV00472 | **Lớp:** SD21307  
 > **Dự án:** TEA POS SYSTEM - O2O & CLICK & COLLECT ENTERPRISE  
@@ -11,7 +11,7 @@
 ## 1. Ngữ cảnh & Mục tiêu (RAG Context & Goal)
 * **Mục tiêu:** Áp dụng phương pháp Retrieval-Augmented Generation (RAG) bằng cách nạp toàn bộ tài liệu đặc tả nghiệp vụ dự án thực tế **TEA POS** (`docs/SPECIFICATIONS.md`) vào mô hình ngôn ngữ lớn (LLM).
 * **Nhiệm vụ của AI:** 
-  1. Phân tích chuỗi quan hệ nguyên nhân - kết quả **Error $\rightarrow$ Defect $\rightarrow$ Failure** trong kịch bản xử lý nghiệp vụ bán lẻ và thanh toán quầy POS (bám sát lý thuyết Bài 1 Lab 1).
+  1. Phân tích chuỗi quan hệ nguyên nhân - kết quả **Error $\rightarrow$ Defect $\rightarrow$ Failure** trong kịch bản xử lý nghiệp vụ bán lẻ và thanh toán quầy POS (chuỗi quan hệ nguyên nhân - kết quả chuẩn ISTQB).
   2. Thiết kế Kế hoạch kiểm thử (**Test Plan**) hoàn chỉnh gồm 5 mục tiêu trọng tâm (đối chiếu tiêu chuẩn Verification vs Validation).
   3. Thiết kế Bộ kịch bản kiểm thử (**Test Cases**) chi tiết bao phủ các phân hệ trọng yếu: Xác thực & Chống Brute-Force, POS Cashier & Thanh toán VAT 8%, Quản trị Thực đơn đa kích cỡ (Product CRUD), Khuyến mãi Voucher & CRM, và Cổng đặt hàng Click & Collect.
 
@@ -41,7 +41,7 @@ Dưới đây là tài liệu đặc tả nghiệp vụ chi tiết của dự á
 ========================= [KẾT THÚC ĐẶC TẢ SPECIFICATIONS.MD] =========================
 
 Dựa vào ngữ cảnh trên, hãy thực hiện:
-1. Phân tích bài toán Lab 1: Mối quan hệ giữa Error -> Defect -> Failure trong trường hợp khách hàng áp dụng voucher giảm giá 100% dẫn đến tổng tiền đơn hàng phải trả bằng 0 VNĐ.
+1. Phân tích bài toán kiểm thử: Mối quan hệ giữa Error -> Defect -> Failure trong trường hợp khách hàng áp dụng voucher giảm giá 100% dẫn đến tổng tiền đơn hàng phải trả bằng 0 VNĐ.
 2. Xây dựng Bảng Kế hoạch kiểm thử (Test Plan) gồm 5 mục tiêu cốt lõi, phân loại Verification vs Validation.
 3. Thiết kế bảng Test Cases chuẩn hóa (gồm Positive và Negative, áp dụng kỹ thuật Phân vùng tương đương EP và Phân tích giá trị biên BVA).
 ```
@@ -52,7 +52,7 @@ Dựa vào ngữ cảnh trên, hãy thực hiện:
 
 AI đã tiếp nhận tài liệu đặc tả và phản hồi chi tiết:
 
-1. **Phân tích bản chất lỗi theo lý thuyết Lab 1 (Error $\rightarrow$ Defect $\rightarrow$ Failure):**
+1. **Phân tích bản chất lỗi theo lý thuyết kiểm thử (Error $\rightarrow$ Defect $\rightarrow$ Failure):**
    * **Error (Sai sót con người / Human mistake):** Lập trình viên backend khi xây dựng hàm xử lý thanh toán `performCheckout()` đã mặc định rằng mọi hóa đơn đều có giá trị lớn hơn 0 và luôn chuyển luồng thanh toán sang API sinh mã chuyển khoản VietQR nếu khách chọn chuyển khoản, mà quên kiểm tra trường hợp đặc biệt khi tổng tiền sau giảm giá về 0 VNĐ (`tongPhaiTra <= 0`).
    * **Defect (Khuyết tật mã nguồn / Bug trong code):** Thiếu khối lệnh rẽ nhánh bảo vệ:
      ```java

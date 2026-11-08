@@ -3,11 +3,10 @@
 > **Môn học:** SOF309 - Kiểm thử nâng cao cùng AI (FPT Polytechnic)  
 > **Sinh viên:** Phạm Thiện Quang | **MSSV:** TV00472 | **Lớp:** SD21307  
 > **Giảng viên hướng dẫn:** ThS. Trần Quang Bình  
-> **Tham chiếu lý thuyết:** Slide 1 (Kiểm thử đơn vị) & Lab 1 (Tổng quan kiểm thử phần mềm)  
 
 ---
 
-## 1. MỤC TIÊU KIỂM THỬ (TEST OBJECTIVES - BÀI 2 LAB 1)
+## 1. MỤC TIÊU KIỂM THỬ (TEST OBJECTIVES)
 
 Dựa trên 5 mục tiêu kiểm thử cốt lõi trong ngữ cảnh hệ thống bán lẻ và cổng đặt nước Tea POS:
 
@@ -21,7 +20,7 @@ Dựa trên 5 mục tiêu kiểm thử cốt lõi trong ngữ cảnh hệ thốn
 
 ---
 
-## 2. PHÂN BIỆT KIỂM THỬ VÀ GỠ LỖI (TESTING VS DEBUGGING - BÀI 1 LAB 1)
+## 2. NGUYÊN TẮC KIỂM THỬ VÀ GỠ LỖI (TESTING VS DEBUGGING)
 
 * **Kiểm thử (Testing):** Là hoạt động thiết kế và thực thi có chủ đích các kịch bản kiểm thử (Test Scripts trên JUnit 5 & Selenium) nhằm phát hiện ra các sai sót (Defects) và ghi nhận lỗi hệ thống (Failures) khi hành vi thực tế khác biệt so với đặc tả nghiệp vụ (`SPECIFICATIONS.md`).
 * **Gỡ lỗi (Debugging):** Là hoạt động chuyên biệt của lập trình viên sau khi nhận được báo cáo thất bại từ Tester/CI: Phân tích Stack Trace $\rightarrow$ xác định nguyên nhân gốc rễ (Root Cause) trong mã nguồn (Service/Controller) $\rightarrow$ sửa lỗi và tối ưu code $\rightarrow$ thực thi lại bộ Test để xác nhận lỗi đã được khắc phục hoàn toàn.
