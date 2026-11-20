@@ -1,0 +1,132 @@
+package com.poly.sof309.ui.tests;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
+
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * =========================================================================
+ * [Y4 - P1] BASE TEST CHO SELENIUM WEBDRIVER UI AUTOMATION
+ * Quản lý vòng đời ChromeDriver, tự động phát hiện cổng Tomcat local (8080/8081),
+ * hỗ trợ Headless CI/CD và bỏ qua an toàn qua Assumptions khi server chưa bật.
+ * =========================================================================
+ */
+public abstract class BaseUiTest {
+    protected static final String ADMIN_USER = System.getProperty("test.admin.user", "admin");
+    protected static final String ADMIN_PASS = System.getProperty("test.admin.pass", "12345678");
+    protected static final String STAFF_USER = System.getProperty("test.staff.user", "staff");
+    protected static final String STAFF_PASS = System.getProperty("test.staff.pass", "12345678");
+    protected static final String CUSTOMER_USER = System.getProperty("test.customer.user", "khach_vip@gmail.com");
+    protected static final String CUSTOMER_PASS = System.getProperty("test.customer.pass", "12345678");
+
+    private static volatile boolean baseUrlResolved = false;
+    private static String cachedBaseUrl;
+
+    protected WebDriver driver;
+    protected String baseUrl;
+
+    @BeforeAll
+    public static void initBaseUrl() {
+        resolveBaseUrl();
+    }
+
+    @BeforeEach
+    public void setUpDriver() {
+        baseUrl = resolveBaseUrl();
+        Assumptions.assumeTrue(baseUrl != null,
+                "Bỏ qua UI Selenium Test vì máy chủ Tea POS local chưa chạy (hãy bật Tomcat hoặc truyền -Dapp.baseUrl=...).");
+
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--window-size=1920,1080");
+        options.addArguments("--remote-allow-origins=*");
+
+        boolean isHeadless = Boolean.parseBoolean(System.getenv("CI"))
+                || Boolean.parseBoolean(System.getProperty("headless", "false"));
+        if (isHeadless) {
+            options.addArguments("--headless=new");
+            options.addArguments("--no-sandbox");
+            options.addArguments("--disable-dev-shm-usage");
+        }
+
+        driver = new ChromeDriver(options);
+        if (!isHeadless) {
+            driver.manage().window().maximize();
+        }
+    }
+
+    @AfterEach
+    public void tearDownDriver() {
+        if (driver != null) {
+            driver.quit();
+            driver = null;
+        }
+    }
+
+    private static synchronized String resolveBaseUrl() {
+        if (baseUrlResolved) {
+            return cachedBaseUrl;
+        }
+
+        String configured = System.getProperty("app.baseUrl");
+        if (configured == null || configured.trim().isEmpty()) {
+            configured = System.getenv("APP_BASE_URL");
+        }
+
+        if (configured != null && !configured.trim().isEmpty()) {
+            String normalized = trimTrailingSlash(configured.trim());
+            cachedBaseUrl = isReachable(normalized + "/login") ? normalized : null;
+            baseUrlResolved = true;
+            return cachedBaseUrl;
+        }
+
+        List<String> candidates = Arrays.asList(
+                "http://localhost:8080/SOF309_SD21307_TV00472_PhamThienQuang_war",
+                "http://localhost:8080/SOF309_SD21307_TV00472_PhamThienQuang_war_exploded",
+                "http://localhost:8080/SOF309_SD21307_TV00472_PhamThienQuang_war",
+                "http://localhost:8080/SOF309_SD21307_TV00472_PhamThienQuang",
+                "http://localhost:8080"
+        );
+
+        for (String candidate : candidates) {
+            if (isReachable(candidate + "/login")) {
+                cachedBaseUrl = candidate;
+                break;
+            }
+        }
+        baseUrlResolved = true;
+        return cachedBaseUrl;
+    }
+
+    private static String trimTrailingSlash(String url) {
+        return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+    }
+
+    private static boolean isReachable(String probeUrl) {
+        HttpURLConnection conn = null;
+        try {
+            conn = (HttpURLConnection) new URL(probeUrl).openConnection();
+            conn.setRequestMethod("GET");
+            conn.setInstanceFollowRedirects(false);
+            conn.setConnectTimeout(1500);
+            conn.setReadTimeout(1500);
+            int code = conn.getResponseCode();
+            return code >= 200 && code < 400;
+        } catch (IOException e) {
+            return false;
+        } finally {
+            if (conn != null) {
+                conn.disconnect();
+            }
+        }
+    }
+}

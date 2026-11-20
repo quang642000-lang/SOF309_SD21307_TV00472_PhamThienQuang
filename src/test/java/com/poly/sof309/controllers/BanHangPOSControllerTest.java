@@ -92,6 +92,20 @@ public class BanHangPOSControllerTest {
         assertFalse(result.generateQrCode, "Tuyệt đối không được yêu cầu sinh mã VietQR cho đơn hàng 0 VNĐ");
     }
 
+    @Test
+    @DisplayName("TC_PAY_04: Thanh toán chuyển khoản VietQR với đơn > 0đ giữ trạng thái chờ và sinh mã QR động")
+    public void testVietQrPaymentPendingOrderGeneratesQrCode() {
+        int tongTienHang = 100000;
+
+        PaymentResult result = processPosCheckout(tongTienHang, 0, 0, 2);
+
+        assertEquals(108000, result.tongPhaiTra, "Tổng phải trả sau VAT 8% phải bằng 108.000đ");
+        assertEquals(2, result.maPt, "Phương thức thanh toán phải giữ nguyên là 2 (VietQR)");
+        assertEquals(0, result.trangThaiThanhToan, "Trạng thái thanh toán ban đầu phải là 0 (Chờ xác nhận QR)");
+        assertEquals(0, result.trangThaiDon, "Trạng thái đơn ban đầu phải là 0 (Chờ xử lý)");
+        assertTrue(result.generateQrCode, "Phải sinh mã VietQR động cho đơn hàng chuyển khoản > 0đ");
+    }
+
     // =====================================================================
     // 3. EXCEPTION TESTING: BẮT NGOẠI LỆ THANH TOÁN VỚI assertThrows
     // =====================================================================

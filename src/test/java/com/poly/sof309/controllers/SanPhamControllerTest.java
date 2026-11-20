@@ -29,12 +29,12 @@ public class SanPhamControllerTest {
     @ParameterizedTest(name = "[{index}] Tên=''{0}'', Danh mục=''{1}'', Thứ tự={2} -> Hợp lệ: {3}")
     @DisplayName("TC_PROD_01 - 03: Parameterized Test kiểm tra validation form thêm mới sản phẩm")
     @CsvSource({
-            "'Trà Sữa Oolong Nướng', 'DM01', 1, true",
-            "'Trà Sen Vàng Kem Cheese', 'DM02', 2, true",
-            "'', 'DM01', 1, false",                          // Tên món trống
-            "'   ', 'DM01', 1, false",                       // Tên món chỉ có khoảng trắng
-            "'Trà Đào Cam Sả', '', 1, false",                // Danh mục trống
-            "'Trà Vải', 'DM01', -1, false"                    // Thứ tự hiển thị âm
+            "'Trà Sữa Oolong Nướng', 'DM00001', 1, true",
+            "'Trà Sen Vàng Kem Cheese', 'DM00002', 2, true",
+            "'', 'DM00001', 1, false",                          // Tên món trống
+            "'   ', 'DM00001', 1, false",                       // Tên món chỉ có khoảng trắng
+            "'Trà Đào Cam Sả', '', 1, false",                   // Danh mục trống
+            "'Trà Vải', 'DM00001', -1, false"                   // Thứ tự hiển thị âm
     })
     public void testCreateProductValidation(String tenSp, String maDm, int thuTuHienThi, boolean expectedValid) {
         boolean isValid = validateProductInput(tenSp, maDm, thuTuHienThi);
@@ -49,7 +49,7 @@ public class SanPhamControllerTest {
     @DisplayName("TC_PROD_02: Ném ngoại lệ IllegalArgumentException khi tạo món mà không cấu hình Size và Giá")
     public void testCreateProductWithoutSizeThrowsException() {
         String tenSp = "Trà Xanh Thái Lan";
-        String maDm = "DM01";
+        String maDm = "DM00001";
         List<SizeConfig> emptySizes = new ArrayList<>(); // Rỗng, không chọn size nào
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
@@ -64,7 +64,7 @@ public class SanPhamControllerTest {
     @DisplayName("TC_PROD_EX_01: Ném ngoại lệ IllegalArgumentException khi giá bán của kích cỡ nhỏ hơn 0")
     public void testNegativeSizePriceThrowsException() {
         String tenSp = "Trà Sữa Trân Châu";
-        String maDm = "DM01";
+        String maDm = "DM00001";
         List<SizeConfig> sizes = new ArrayList<>();
         sizes.add(new SizeConfig(1, -15000 /* Giá âm */));
 
@@ -83,7 +83,7 @@ public class SanPhamControllerTest {
     @Test
     @DisplayName("TC_PROD_04: Sản phẩm đã từng có hóa đơn bán lẻ -> Thực hiện SOFT DELETE (trang_thai = 0)")
     public void testProductWithOrdersPerformsSoftDelete() {
-        String maSp = "SP001";
+        String maSp = "SP00001";
         boolean hasOrdersInHistory = true; // Đã từng bán trong CHI_TIET_DON_HANG
 
         DeleteAction action = resolveDeleteAction(maSp, hasOrdersInHistory);
@@ -96,7 +96,7 @@ public class SanPhamControllerTest {
     @Test
     @DisplayName("TC_PROD_05: Sản phẩm mới tạo chưa từng có hóa đơn -> Thực hiện HARD DELETE (xóa sạch DB)")
     public void testProductWithoutOrdersPerformsHardDelete() {
-        String maSp = "SP999";
+        String maSp = "SP00999";
         boolean hasOrdersInHistory = false; // Chưa từng phát sinh đơn hàng
 
         DeleteAction action = resolveDeleteAction(maSp, hasOrdersInHistory);

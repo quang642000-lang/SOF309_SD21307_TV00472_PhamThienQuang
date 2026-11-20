@@ -9,6 +9,9 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import util.SecurityUtil;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -19,18 +22,27 @@ import static org.junit.jupiter.api.Assertions.*;
  * [Y3] UNIT TEST CHO PHÂN HỆ XÁC THỰC & BẢO MẬT (AUTH & SECURITY)
  * Dự án: TEA POS SYSTEM - O2O & CLICK & COLLECT ENTERPRISE
  * Sinh viên: Phạm Thiện Quang - MSSV: TV00472 - Lớp: SD21307
- * Bám sát kịch bản: TC_AUTH_01 đến TC_AUTH_09 trong docs/TEST_CASES.md
+ * Bám sát kịch bản: TC_AUTH_01 đến TC_AUTH_12 trong docs/TEST_CASES.md
  * =========================================================================
  */
 public class AuthControllerTest {
 
     private ConcurrentHashMap<String, Integer> failedAttempts;
     private ConcurrentHashMap<String, Long> lockTimeouts;
+    private Set<String> existingPhones;
+    private Set<String> existingEmails;
 
     @BeforeEach
     public void setUp() {
         failedAttempts = new ConcurrentHashMap<>();
         lockTimeouts = new ConcurrentHashMap<>();
+        // Dữ liệu seed thực tế từ schema.sql
+        existingPhones = new HashSet<>(Arrays.asList("0909999999", "0346406405", "0977112233"));
+        existingEmails = new HashSet<>(Arrays.asList(
+                "khach_vip@gmail.com",
+                "quang_customer@gmail.com",
+                "test.crm.teapos@gmail.com"
+        ));
     }
 
     // =====================================================================
@@ -40,12 +52,12 @@ public class AuthControllerTest {
     @ParameterizedTest(name = "[{index}] Kiểm tra form đăng nhập: user=''{0}'', pass=''{1}'' -> Hợp lệ: {2}")
     @DisplayName("TC_AUTH_01 - 04: Parameterized Test kiểm tra validation form đăng nhập")
     @CsvSource({
-            "'admin', 'Admin@123', true",
-            "'cashier01', 'Cashier@123', true",
-            "'', 'Admin@123', false",
+            "'admin', '12345678', true",
+            "'staff', '12345678', true",
+            "'', '12345678', false",
             "'admin', '', false",
             "'   ', '   ', false",
-            "'manager', 'short', false"
+            "'staff', 'short', false"
     })
     public void testLoginInputValidation(String username, String password, boolean expectedValid) {
         boolean isValid = validateLoginInput(username, password);
@@ -54,15 +66,16 @@ public class AuthControllerTest {
     }
 
     @ParameterizedTest(name = "[{index}] Đăng ký: SĐT=''{1}'', Pass=''{3}'', Match=''{4}'', Terms={5} -> Kết quả: {6}")
-    @DisplayName("TC_AUTH_06 - 08: Parameterized Test kiểm tra các trường dữ liệu đăng ký thành viên Portal")
+    @DisplayName("TC_AUTH_06 - 08, TC_AUTH_11 - 12: Parameterized Test kiểm tra các trường dữ liệu đăng ký Portal")
     @CsvSource({
             // Họ tên, SĐT, Email, Password, ConfirmPassword, AgreeTerms, ExpectedSuccess
-            "'Phạm Thiện Quang', '0987654321', 'quang@gmail.com', 'Pass@123', 'Pass@123', true, true",
-            "'', '0987654321', 'quang@gmail.com', 'Pass@123', 'Pass@123', true, false",          // Tên trống
-            "'Quang', '098765', 'quang@gmail.com', 'Pass@123', 'Pass@123', true, false",           // SĐT ngắn < 10 số
-            "'Quang', '0987654321', 'sai_email', 'Pass@123', 'Pass@123', true, false",            // Email sai format
-            "'Quang', '0987654321', 'quang@gmail.com', 'Pass@123', 'Pass@KhacNhau', true, false",  // Pass không khớp
-            "'Quang', '0987654321', 'quang@gmail.com', 'Pass@123', 'Pass@123', false, false"       // Chưa tick điều khoản
+            "'Phạm Thiện Quang', '0987654321', 'quang@gmail.com', 'Quang@1234', 'Quang@1234', true, true", // TC_AUTH_06
+            "'', '0987654321', 'quang@gmail.com', 'Quang@1234', 'Quang@1234', true, false",                // Tên trống
+            "'Quang', '098765', 'quang@gmail.com', 'Quang@1234', 'Quang@1234', true, false",              // TC_AUTH_11: SĐT < 10 số
+            "'Quang', '0987654321', 'sai_email', 'Quang@1234', 'Quang@1234', true, false",                // Email sai format
+            "'Quang', '0987654321', 'quang@gmail.com', '12345', '12345', true, false",                    // TC_AUTH_12: Mật khẩu < 8 ký tự
+            "'Quang', '0987654321', 'quang@gmail.com', 'Quang@1234', 'Quang@Khac', true, false",          // TC_AUTH_07: Pass không khớp
+            "'Quang', '0987654321', 'quang@gmail.com', 'Quang@1234', 'Quang@1234', false, false"          // TC_AUTH_08: Chưa tick điều khoản
     })
     public void testCustomerRegisterValidation(String fullName, String phone, String email,
                                                String pass, String confirmPass, boolean agreeTerms,
@@ -90,16 +103,26 @@ public class AuthControllerTest {
     @DisplayName("TC_AUTH_07: Ném ngoại lệ IllegalArgumentException khi mật khẩu xác nhận không khớp")
     public void testPasswordMismatchThrowsException() {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-            registerNewCustomer("Phạm Thiện Quang", "0987654321", "quang@gmail.com", "Password@123", "Password@MISMATCH");
+            registerNewCustomer("Phạm Thiện Quang", "0987654321", "quang@gmail.com", "Quang@1234", "Quang@Khac");
         });
 
         assertEquals("Mật khẩu nhập lại không trùng khớp với mật khẩu ban đầu.", ex.getMessage());
     }
 
     @Test
+    @DisplayName("TC_AUTH_09: Ném ngoại lệ IllegalArgumentException khi trùng SĐT hoặc Email đã tồn tại")
+    public void testRegisterDuplicatePhoneOrEmailThrowsException() {
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            registerNewCustomer("Khách Trùng", "0909999999", "khach_vip@gmail.com", "Quang@1234", "Quang@1234");
+        }, "Phải ném ngoại lệ khi đăng ký với SĐT/Email đã có trong CSDL");
+
+        assertEquals("Đăng ký không thành công. Số điện thoại hoặc Email này đã tồn tại trong hệ thống.", ex.getMessage());
+    }
+
+    @Test
     @DisplayName("TC_AUTH_05: Ném ngoại lệ IllegalStateException khi tài khoản bị khóa Brute-Force")
     public void testAccountLockedAfterConsecutiveFailuresThrowsException() {
-        String testUser = "attacker_staff";
+        String testUser = "staff";
 
         // Giả lập nhập sai 5 lần liên tiếp
         for (int i = 1; i <= 5; i++) {
@@ -125,7 +148,7 @@ public class AuthControllerTest {
     @Timeout(value = 2, unit = TimeUnit.SECONDS)
     @DisplayName("TC_AUTH_01_SEC: Mã hóa mật khẩu Salted SHA-256 + Pepper và xác thực hoàn thành dưới 2 giây")
     public void testSaltedSha256PerformanceAndSecurity() {
-        String rawPassword = "AdminSecure@2026";
+        String rawPassword = "12345678";
         String username = "admin";
 
         // Thực hiện băm có muối
@@ -143,8 +166,8 @@ public class AuthControllerTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"admin", "cashier01", "manager_hanoi"})
-    @DisplayName("TC_AUTH_RBAC: Kiểm tra phân quyền điều hướng đúng vai trò")
+    @ValueSource(strings = {"admin", "staff", "customer"})
+    @DisplayName("TC_AUTH_01, 02, 10: Kiểm tra phân quyền điều hướng đúng vai trò")
     public void testRoleRedirection(String roleName) {
         String redirectUrl = resolveRedirectUrl(roleName);
         assertNotNull(redirectUrl);
@@ -164,9 +187,9 @@ public class AuthControllerTest {
     private boolean validateRegisterInput(String fullName, String phone, String email,
                                           String pass, String confirmPass, boolean agreeTerms) {
         if (fullName == null || fullName.trim().isEmpty()) return false;
-        if (phone == null || !phone.matches("^0[0-9]{9}$")) return false; // Đúng 10 số bắt đầu bằng 0
+        if (phone == null || !phone.matches("^0[0-9]{9,10}$")) return false; // 10-11 số khớp register.jsp
         if (email == null || !email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) return false;
-        if (pass == null || pass.length() < 6) return false;
+        if (pass == null || pass.length() < 8) return false; // Tối thiểu 8 ký tự khớp register.jsp
         if (!pass.equals(confirmPass)) return false;
         return agreeTerms;
     }
@@ -180,6 +203,9 @@ public class AuthControllerTest {
     private void registerNewCustomer(String name, String phone, String email, String pass, String confirmPass) {
         if (!pass.equals(confirmPass)) {
             throw new IllegalArgumentException("Mật khẩu nhập lại không trùng khớp với mật khẩu ban đầu.");
+        }
+        if (existingPhones.contains(phone) || existingEmails.contains(email)) {
+            throw new IllegalArgumentException("Đăng ký không thành công. Số điện thoại hoặc Email này đã tồn tại trong hệ thống.");
         }
     }
 
@@ -205,7 +231,7 @@ public class AuthControllerTest {
     private String resolveRedirectUrl(String role) {
         if ("admin".equals(role)) {
             return "/admin/dashboard";
-        } else if ("cashier01".equals(role)) {
+        } else if ("staff".equals(role)) {
             return "/pos";
         }
         return "/home";

@@ -9,7 +9,7 @@
 ---
 
 ## 1. Ngữ cảnh & Mục tiêu (Context & Goal)
-* **Ngữ cảnh:** Bước sang Tuần 2 của môn học SOF309, sinh viên cần hiện thực hóa bộ 22 ca kiểm thử đã thiết kế tại `docs/TEST_CASES.md` thành mã nguồn kiểm thử tự động thực tế (JUnit 5) trong thư mục `src/test/java/com/poly/sof309/controllers/`.
+* **Ngữ cảnh:** Bước sang Tuần 2 của môn học SOF309, sinh viên cần hiện thực hóa bộ 30 ca kiểm thử đã thiết kế tại `docs/TEST_CASES.md` thành mã nguồn kiểm thử tự động thực tế (JUnit 5) trong thư mục `src/test/java/com/poly/sof309/controllers/`.
 * **Mục tiêu kỹ thuật (Y3):**
   1. Áp dụng kỹ thuật kiểm thử tham số hóa **`@ParameterizedTest`** kết hợp **`@CsvSource`** để kiểm thử hàng loạt bộ dữ liệu biên (BVA) và phân vùng tương đương (EP) cho các form nhập liệu: Đăng nhập nội bộ, Đăng ký khách hàng Portal, Tính thuế VAT 8%, Tính tiền thừa thu ngân, Tính chiết khấu Voucher và Tạo sản phẩm mới.
   2. Áp dụng kỹ thuật kiểm thử ngoại lệ **`assertThrows()`** (Exception Testing) để bắt chính xác các vi phạm nghiệp vụ: đăng nhập thiếu tham số, mật khẩu xác nhận không khớp, cố tình đăng nhập khi tài khoản bị khóa Brute-Force 300 giây, đổi điểm CRM vượt số dư, và tạo món nước mà không cấu hình kích cỡ kèm giá bán.
@@ -72,21 +72,21 @@ Sau khi nhận code từ AI, sinh viên đã rà soát chi tiết với mã ngu�
    * Trong `BanHangPOSControllerTest`, bổ sung kiểm thử điều kiện `tienGiamGia > tongTienHang` (tiền giảm giá không bao giờ được vượt quá tổng tiền hàng để chống gian lận âm tiền).
 3. **Mô phỏng chính xác cơ chế khóa tài khoản Brute-Force:**
    * Trong `AuthControllerTest`, bổ sung cấu trúc `ConcurrentHashMap` lưu trữ số lần thử sai và mốc thời gian `lockUntil` để kiểm thử chính xác ngưỡng: lần thứ 1 đến 4 chưa khóa, chạm mốc 5 lần thì khóa đúng 300 giây và ném `IllegalStateException`.
-4. **Nghiệm thu toàn bộ test script:**
-   * Chạy lệnh `mvn test` qua terminal:
+4. **Đồng bộ đầy đủ 1–1 với `TEST_CASES.md` & Nghiệm thu toàn bộ test script:**
+   * Xóa file mẫu thừa `SampleControllerTest.java` (trùng mã `TC_AUTH_02`).
+   * Bổ sung đầy đủ các ca còn thiếu: `TC_AUTH_09` (trùng SĐT/Email), `TC_PAY_04` (VietQR đơn > 0đ), `TC_VOUCHER_03` (đổi điểm CRM) và class `PortalCheckoutControllerTest.java` bao phủ trọn vẹn `TC_CART_01` → `TC_CART_04`.
+   * Cập nhật dữ liệu test khớp seed `schema.sql` (`admin`/`12345678`, `staff`/`12345678`, `DM00001`, `SP00001`, `HAPPYHOUR20`, `TEA_WELCOME10`) và ngưỡng mật khẩu đăng ký `>= 8` ký tự khớp `register.jsp`.
+   * Chạy lệnh `mvn test` qua terminal (kết quả 5 bộ Unit Test Controller):
      ```text
      [INFO] Running com.poly.sof309.controllers.AuthControllerTest
-     [INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
-     [INFO] Running com.poly.sof309.controllers.BanHangPOSControllerTest
      [INFO] Tests run: 21, Failures: 0, Errors: 0, Skipped: 0
-     [INFO] Running com.poly.sof309.controllers.SampleControllerTest
-     [INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0
+     [INFO] Running com.poly.sof309.controllers.BanHangPOSControllerTest
+     [INFO] Tests run: 22, Failures: 0, Errors: 0, Skipped: 0
+     [INFO] Running com.poly.sof309.controllers.PortalCheckoutControllerTest
+     [INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0
      [INFO] Running com.poly.sof309.controllers.SanPhamControllerTest
      [INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0
      [INFO] Running com.poly.sof309.controllers.VoucherControllerTest
-     [INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0
-     [INFO] Results:
-     [INFO] Tests run: 64, Failures: 0, Errors: 0, Skipped: 1
-     [INFO] BUILD SUCCESS
+     [INFO] Tests run: 12, Failures: 0, Errors: 0, Skipped: 0
      ```
-   * Toàn bộ **64 ca kiểm thử** đều đạt **PASS 100%**, thời gian thực thi chỉ mất 3.5 giây.
+   * Toàn bộ **76 ca Unit Test** trong `controllers/` đều đạt **PASS 100%** (0 Failure, 0 Error).

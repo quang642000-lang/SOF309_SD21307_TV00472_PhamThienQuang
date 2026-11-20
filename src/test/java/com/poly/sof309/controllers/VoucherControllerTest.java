@@ -25,21 +25,36 @@ public class VoucherControllerTest {
     // =====================================================================
 
     @ParameterizedTest(name = "[{index}] Đơn={0}đ, Loại={1}, Trị={2}, Max={3}, Min={4} -> Giảm thực tế={5}đ")
-    @DisplayName("TC_VOUCHER_01 - 03: Parameterized Test kiểm tra thuật toán chiết khấu Voucher")
+    @DisplayName("TC_VOUCHER_01 - 02: Parameterized Test kiểm tra thuật toán chiết khấu Voucher")
     @CsvSource({
             // tongDon, loaiGiam (1:tien, 2:%), giaTriGiam, giamToiDa, donToiThieu, expectedDiscount
             "100000, 1, 20000, 0, 80000, 20000",        // Giảm 20k tiền mặt, đơn 100k > min 80k -> giảm 20k
-            "50000, 1, 20000, 0, 80000, 0",             // Giảm 20k nhưng đơn 50k < min 80k -> không giảm (0đ)
-            "500000, 2, 20, 50000, 100000, 50000",      // Giảm 20% (100k) nhưng bị trần max 50k -> chốt 50k
-            "150000, 2, 20, 50000, 100000, 30000",      // Giảm 20% của 150k = 30k < max 50k -> giảm 30k
-            "200000, 2, 10, 0, 50000, 20000",           // Giảm 10% của 200k = 20k (không giới hạn trần) -> giảm 20k
-            "30000, 1, 50000, 0, 0, 30000"              // Tiền giảm 50k > tổng đơn 30k -> chỉ giảm tối đa 30k (không âm)
+            "30000, 1, 10000, 0, 40000, 0",              // TEA_WELCOME10: đơn 30k < min 40k -> không giảm (0đ)
+            "200000, 2, 20, 25000, 50000, 25000",        // HAPPYHOUR20: giảm 20% (40k) chạm trần 25k -> chốt 25k
+            "500000, 2, 20, 50000, 100000, 50000",       // Giảm 20% (100k) nhưng bị trần max 50k -> chốt 50k
+            "150000, 2, 20, 50000, 100000, 30000",       // Giảm 20% của 150k = 30k < max 50k -> giảm 30k
+            "200000, 2, 10, 0, 50000, 20000",            // Giảm 10% của 200k = 20k (không giới hạn trần) -> giảm 20k
+            "30000, 1, 50000, 0, 0, 30000"               // Tiền giảm 50k > tổng đơn 30k -> chỉ giảm tối đa 30k (không âm)
     })
     public void testVoucherDiscountCalculation(int tongDonHang, int loaiGiam, int giaTriGiam,
                                               int giamToiDa, int donToiThieu, int expectedDiscount) {
         int actualDiscount = calculateVoucherDiscount(tongDonHang, loaiGiam, giaTriGiam, giamToiDa, donToiThieu);
         assertEquals(expectedDiscount, actualDiscount,
                 "Số tiền giảm giá tính toán không khớp với quy tắc nghiệp vụ!");
+    }
+
+    @Test
+    @DisplayName("TC_VOUCHER_03: Đổi điểm tích lũy CRM sang tiền mặt trừ đơn (1 điểm = 1.000 VNĐ)")
+    public void testCrmLoyaltyPointsRedemptionCalculation() {
+        int currentPoints = 50;
+        int requestedPoints = 30;
+        int tongTienHang = 60000;
+
+        PointsRedemptionResult result = redeemLoyaltyPoints(requestedPoints, currentPoints, tongTienHang);
+
+        assertEquals(30000, result.tienTruDiem, "30 điểm phải quy đổi đúng thành 30.000 VNĐ");
+        assertEquals(30000, result.remainingBill, "Số tiền còn lại sau trừ điểm phải bằng 30.000 VNĐ");
+        assertEquals(20, result.remainingPoints, "Số điểm dư của khách phải còn lại 20 điểm");
     }
 
     // =====================================================================
@@ -125,5 +140,23 @@ public class VoucherControllerTest {
         if (code == null || code.trim().isEmpty()) {
             throw new IllegalArgumentException("Mã voucher không được để trống!");
         }
+    }
+
+    private static class PointsRedemptionResult {
+        int tienTruDiem;
+        int remainingBill;
+        int remainingPoints;
+    }
+
+    private PointsRedemptionResult redeemLoyaltyPoints(int requestedPoints, int currentPoints, int tongTienHang) {
+        if (requestedPoints < 0 || requestedPoints > currentPoints) {
+            throw new IllegalArgumentException("Số điểm sử dụng không hợp lệ hoặc vượt quá số dư!");
+        }
+        int discount = Math.min(requestedPoints * 1000, tongTienHang);
+        PointsRedemptionResult res = new PointsRedemptionResult();
+        res.tienTruDiem = discount;
+        res.remainingBill = tongTienHang - discount;
+        res.remainingPoints = currentPoints - (discount / 1000);
+        return res;
     }
 }

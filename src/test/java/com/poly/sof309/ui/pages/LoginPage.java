@@ -5,36 +5,48 @@ import org.openqa.selenium.WebDriver;
 
 /**
  * =========================================================================
- * [Y4] MẪU PAGE OBJECT MODEL (POM) CHO TRANG ĐĂNG NHẬP
- * Class này chỉ quản lý các phần tử (Locator) và hành động trên trang Web.
+ * [Y4 - P1] PAGE OBJECT MODEL (POM) CHO TRANG ĐĂNG NHẬP TEA POS
+ * Khớp DOM thực tế của login_admin.jsp (/login) và login_customer.jsp (/customer/login).
  * =========================================================================
  */
-public class LoginPage {
-    private WebDriver driver;
-
-    // 1. Định nghĩa các Locator trên trang đăng nhập của web cá nhân
-    private By txtUsername = By.id("username");
-    private By txtPassword = By.id("password");
-    private By btnLogin = By.xpath("//button[@type='submit']");
-    private By lblErrorMessage = By.id("error-message");
+public class LoginPage extends BasePage {
+    // 1. Định nghĩa các Locator theo DOM thực tế của JSP
+    private final By txtUsername = By.name("username");
+    private final By txtPassword = By.name("password");
+    private final By btnLogin = By.xpath("//form//button[@type='submit']");
+    private final By brandBannerTitle = By.cssSelector(".brand-banner h4");
+    private final By linkRegister = By.cssSelector("a[href*='/register']");
 
     public LoginPage(WebDriver driver) {
-        this.driver = driver;
+        super(driver);
     }
 
-    // 2. Các hành động nghiệp vụ
-    public void enterUsername(String username) {
-        driver.findElement(txtUsername).clear();
-        driver.findElement(txtUsername).sendKeys(username);
+    // 2. Điều hướng trang
+    public LoginPage openStaffLogin(String baseUrl) {
+        driver.get(baseUrl + "/login");
+        waitForVisibility(txtUsername);
+        return this;
     }
 
-    public void enterPassword(String password) {
-        driver.findElement(txtPassword).clear();
-        driver.findElement(txtPassword).sendKeys(password);
+    public LoginPage openCustomerLogin(String baseUrl) {
+        driver.get(baseUrl + "/customer/login");
+        waitForVisibility(txtUsername);
+        return this;
+    }
+
+    // 3. Các hành động nghiệp vụ
+    public LoginPage enterUsername(String username) {
+        type(txtUsername, username);
+        return this;
+    }
+
+    public LoginPage enterPassword(String password) {
+        type(txtPassword, password);
+        return this;
     }
 
     public void clickLogin() {
-        driver.findElement(btnLogin).click();
+        click(btnLogin);
     }
 
     public void login(String username, String password) {
@@ -43,8 +55,48 @@ public class LoginPage {
         clickLogin();
     }
 
+    public void loginAsAdminAndWait(String username, String password) {
+        login(username, password);
+        waitForUrlContains("/admin/dashboard");
+    }
+
+    public void loginAsCashierAndWait(String username, String password) {
+        login(username, password);
+        waitForUrlContains("/pos");
+    }
+
+    public void loginAsCustomerAndWait(String username, String password) {
+        login(username, password);
+        waitForUrlContains("/home");
+    }
+
     public String getErrorMessage() {
-        return driver.findElement(lblErrorMessage).getText();
+        return waitForSwalMessage();
+    }
+
+    public void dismissErrorAlert() {
+        confirmSwalDialog();
+    }
+
+    public String getUsernameValidationMessage() {
+        return getValidationMessage(txtUsername);
+    }
+
+    public String getPasswordValidationMessage() {
+        return getValidationMessage(txtPassword);
+    }
+
+    public String getBrandBannerTitle() {
+        return getText(brandBannerTitle);
+    }
+
+    public void clickGoToRegister() {
+        click(linkRegister);
+        waitForUrlContains("/register");
+    }
+
+    public void logout(String baseUrl) {
+        driver.get(baseUrl + "/logout");
+        waitForVisibility(txtUsername);
     }
 }
-
