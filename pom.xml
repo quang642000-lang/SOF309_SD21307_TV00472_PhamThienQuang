@@ -19,6 +19,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <junit.jupiter.version>5.10.2</junit.jupiter.version>
         <selenium.version>4.20.0</selenium.version>
+        <testng.version>7.10.2</testng.version>
     </properties>
 
     <dependencies>
@@ -118,6 +119,16 @@
             <version>${selenium.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- ============================================== -->
+        <!-- [Y4 - P2] TESTNG FRAMEWORK (GROUPS, DATAPROVIDER, LISTENERS) -->
+        <!-- ============================================== -->
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>${testng.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -145,11 +156,51 @@
                 </configuration>
             </plugin>
 
-            <!-- Maven Surefire Plugin để tự động chạy Test -->
+            <!-- Maven Surefire Plugin để chạy song song JUnit 5 (controllers) và TestNG (ui/tests) -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
+                <configuration>
+                    <failIfNoTests>false</failIfNoTests>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.maven.surefire</groupId>
+                        <artifactId>surefire-junit-platform</artifactId>
+                        <version>3.2.5</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.apache.maven.surefire</groupId>
+                        <artifactId>surefire-testng</artifactId>
+                        <version>3.2.5</version>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <id>default-test</id>
+                        <configuration>
+                            <includes>
+                                <include>**/controllers/*Test.java</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>testng-ui-tests</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>**/ui/tests/*Test.java</include>
+                            </includes>
+                            <suiteXmlFiles>
+                                <suiteXmlFile>testng.xml</suiteXmlFile>
+                            </suiteXmlFiles>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

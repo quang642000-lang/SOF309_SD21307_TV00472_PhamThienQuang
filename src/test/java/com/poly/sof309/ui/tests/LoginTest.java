@@ -1,80 +1,80 @@
 package com.poly.sof309.ui.tests;
 
+import com.poly.sof309.ui.listeners.TestListener;
 import com.poly.sof309.ui.pages.LoginPage;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.testng.Assert;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.DataProvider;
+import org.testng.annotations.Listeners;
+import org.testng.annotations.Test;
 
 /**
  * =========================================================================
- * [Y4 - P1] KỊCH BẢN KIỂM THỬ GIAO DIỆN ĐĂNG NHẬP BẰNG SELENIUM POM
+ * [Y4 - P2] KỊCH BẢN KIỂM THỬ GIAO DIỆN ĐĂNG NHẬP VỚI TESTNG FRAMEWORK
+ * Áp dụng: @DataProvider (Data-Driven), groups (smoke/regression), @Listeners.
  * Bám sát TC_AUTH_01 - TC_AUTH_04 và TC_AUTH_10 trong docs/TEST_CASES.md.
  * =========================================================================
  */
+@Listeners(TestListener.class)
 public class LoginTest extends BaseUiTest {
     private LoginPage loginPage;
 
-    @BeforeEach
+    @BeforeMethod(alwaysRun = true)
     public void initPage() {
         loginPage = new LoginPage(driver);
     }
 
-    @Test
-    @DisplayName("TC_AUTH_01: Đăng nhập Admin thành công và điều hướng vào Dashboard")
-    public void testAdminLoginSuccessUI() {
-        loginPage.openStaffLogin(baseUrl);
-        loginPage.loginAsAdminAndWait(ADMIN_USER, ADMIN_PASS);
-
-        assertTrue(loginPage.getCurrentUrl().contains("/admin/dashboard"),
-                "Sau khi đăng nhập Admin thành công phải chuyển hướng về /admin/dashboard");
+    @DataProvider(name = "staffLoginData")
+    public Object[][] getStaffLoginData() {
+        return new Object[][]{
+                {ADMIN_USER, ADMIN_PASS, true, "/admin/dashboard", ""},
+                {STAFF_USER, STAFF_PASS, true, "/pos", ""},
+                {"invalid_qa_user", "SaiMatKhau999", false, "/login", "Tên đăng nhập hoặc mật khẩu không chính xác"},
+                {"unknown_staff_99", "WrongPass@123", false, "/login", "Tên đăng nhập hoặc mật khẩu không chính xác"}
+        };
     }
 
-    @Test
-    @DisplayName("TC_AUTH_02: Đăng nhập Thu ngân (Staff) thành công và điều hướng vào quầy POS")
-    public void testCashierLoginSuccessUI() {
+    @Test(dataProvider = "staffLoginData", groups = {"smoke", "regression"},
+            description = "TC_AUTH_01, 02, 04: Data-Driven kiểm thử đăng nhập nhân viên với nhiều bộ tài khoản")
+    public void testStaffLoginDataDriven(String username, String password, boolean expectedSuccess,
+                                         String expectedUrlFragment, String expectedErrorFragment) {
         loginPage.openStaffLogin(baseUrl);
-        loginPage.loginAsCashierAndWait(STAFF_USER, STAFF_PASS);
+        loginPage.login(username, password);
 
-        assertTrue(loginPage.getCurrentUrl().contains("/pos"),
-                "Sau khi đăng nhập Thu ngân thành công phải chuyển hướng về /pos");
+        if (expectedSuccess) {
+            Assert.assertTrue(loginPage.waitForUrlContains(expectedUrlFragment),
+                    "Đăng nhập thành công với user '" + username + "' phải điều hướng về " + expectedUrlFragment);
+            Assert.assertTrue(loginPage.getCurrentUrl().contains(expectedUrlFragment),
+                    "URL thực tế phải chứa " + expectedUrlFragment);
+        } else {
+            String errorMsg = loginPage.getErrorMessage();
+            Assert.assertTrue(errorMsg.contains(expectedErrorFragment),
+                    "Thông báo SweetAlert2 không khớp cho user '" + username + "', nhận được: " + errorMsg);
+            Assert.assertTrue(loginPage.getCurrentUrl().contains(expectedUrlFragment),
+                    "Đăng nhập thất bại không được rời khỏi " + expectedUrlFragment);
+        }
     }
 
-    @Test
-    @DisplayName("TC_AUTH_03: Bị chặn bởi HTML5 validation khi bỏ trống tài khoản đăng nhập")
+    @Test(groups = {"smoke", "regression"},
+            description = "TC_AUTH_10: Khách hàng đăng nhập Portal thành công")
+    public void testCustomerPortalLoginSuccessUI() {
+        loginPage.openCustomerLogin(baseUrl);
+        loginPage.loginAsCustomerAndWait(CUSTOMER_USER, CUSTOMER_PASS);
+
+        Assert.assertTrue(loginPage.getCurrentUrl().contains("/home"),
+                "Khách hàng đăng nhập thành công phải chuyển hướng về /home");
+    }
+
+    @Test(groups = "regression",
+            description = "TC_AUTH_03: Chặn submit khi bỏ trống tài khoản đăng nhập")
     public void testStaffLoginEmptyFieldsBlockedByValidation() {
         loginPage.openStaffLogin(baseUrl);
         loginPage.clickLogin();
 
         String validationMsg = loginPage.getUsernameValidationMessage();
-        assertFalse(validationMsg.isEmpty(),
+        Assert.assertFalse(validationMsg.isEmpty(),
                 "Trình duyệt phải hiển thị thông báo bắt buộc nhập cho trường username");
-        assertTrue(loginPage.getCurrentUrl().contains("/login"),
+        Assert.assertTrue(loginPage.getCurrentUrl().contains("/login"),
                 "Trang vẫn phải giữ nguyên ở màn hình /login khi chưa nhập dữ liệu");
-    }
-
-    @Test
-    @DisplayName("TC_AUTH_04: Hiển thị cảnh báo SweetAlert2 khi nhập sai thông tin đăng nhập")
-    public void testStaffLoginInvalidCredentialsShowsSwalError() {
-        loginPage.openStaffLogin(baseUrl);
-        // Dùng tài khoản không tồn tại để tránh kích hoạt khóa Brute-Force 5 phút lên tài khoản admin
-        loginPage.login("invalid_qa_user", "SaiMatKhau999");
-
-        String errorMsg = loginPage.getErrorMessage();
-        assertTrue(errorMsg.contains("Tên đăng nhập hoặc mật khẩu không chính xác"),
-                "Thông báo SweetAlert2 phải báo sai tên đăng nhập hoặc mật khẩu, nhận được: " + errorMsg);
-        assertTrue(loginPage.getCurrentUrl().contains("/login"),
-                "Đăng nhập thất bại không được chuyển khỏi trang /login");
-    }
-
-    @Test
-    @DisplayName("TC_AUTH_10: Khách hàng đăng nhập Portal thành công và chuyển về trang chủ /home")
-    public void testCustomerPortalLoginSuccessUI() {
-        loginPage.openCustomerLogin(baseUrl);
-        loginPage.loginAsCustomerAndWait(CUSTOMER_USER, CUSTOMER_PASS);
-
-        assertTrue(loginPage.getCurrentUrl().contains("/home"),
-                "Khách hàng đăng nhập thành công phải chuyển hướng về /home");
     }
 }

@@ -1,82 +1,60 @@
 package com.poly.sof309.ui.tests;
 
+import com.poly.sof309.ui.listeners.TestListener;
 import com.poly.sof309.ui.pages.RegisterPage;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.testng.Assert;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.DataProvider;
+import org.testng.annotations.Listeners;
+import org.testng.annotations.Test;
 
 /**
  * =========================================================================
- * [Y4 - P1] KỊCH BẢN KIỂM THỬ GIAO DIỆN ĐĂNG KÝ KHÁCH HÀNG (SELENIUM POM)
- * Bám sát TC_AUTH_06 - TC_AUTH_09, TC_AUTH_11 - TC_AUTH_12 trong docs/TEST_CASES.md.
+ * [Y4 - P2] KỊCH BẢN KIỂM THỬ GIAO DIỆN ĐĂNG KÝ KHÁCH HÀNG VỚI TESTNG
+ * Áp dụng: @DataProvider (Data-Driven), groups = "regression", @Listeners.
+ * Bám sát TC_AUTH_07 - TC_AUTH_09 và TC_AUTH_11 - TC_AUTH_12 trong docs/TEST_CASES.md.
  * =========================================================================
  */
+@Listeners(TestListener.class)
 public class RegisterTest extends BaseUiTest {
     private RegisterPage registerPage;
 
-    @BeforeEach
+    @BeforeMethod(alwaysRun = true)
     public void initPage() {
         registerPage = new RegisterPage(driver);
     }
 
-    @Test
-    @DisplayName("TC_AUTH_11: Cảnh báo SweetAlert2 khi số điện thoại ngắn hơn 10 chữ số")
-    public void testRegisterInvalidPhoneShowsSwalWarning() {
-        registerPage.open(baseUrl);
-        registerPage.register(
-                "Phạm Thiện Quang",
-                "098765",
-                "quang_test_phone@gmail.com",
-                "Quang@1234",
-                "Quang@1234",
-                true
-        );
-
-        String alertMsg = registerPage.getAlertMessage();
-        assertTrue(alertMsg.contains("Số điện thoại phải từ 10 đến 11 chữ số"),
-                "Phải hiển thị cảnh báo SĐT không hợp lệ, nhận được: " + alertMsg);
+    @DataProvider(name = "registerInvalidAlertData")
+    public Object[][] getRegisterInvalidAlertData() {
+        return new Object[][]{
+                {"Phạm Thiện Quang", "098765", "quang_test_phone@gmail.com", "Quang@1234", "Quang@1234",
+                        "Số điện thoại phải từ 10 đến 11 chữ số"},
+                {"Phạm Thiện Quang", "0987654321", "quang_test_match@gmail.com", "Quang@1234", "Quang@Khac",
+                        "Mật khẩu nhập lại không khớp"},
+                {"Phạm Thiện Quang", "0987654321", "quang_test_short@gmail.com", "12345", "12345",
+                        "tối thiểu 8 ký tự"},
+                {"Khách Hàng Trùng Dữ Liệu", "0909999999", "khach_vip@gmail.com", "Quang@1234", "Quang@1234",
+                        "Số điện thoại hoặc Email này đã tồn tại"}
+        };
     }
 
-    @Test
-    @DisplayName("TC_AUTH_07: Cảnh báo SweetAlert2 khi mật khẩu xác nhận không trùng khớp")
-    public void testRegisterPasswordMismatchShowsSwalWarning() {
+    @Test(dataProvider = "registerInvalidAlertData", groups = "regression",
+            description = "TC_AUTH_07, 09, 11, 12: Data-Driven kiểm thử các cảnh báo lỗi đăng ký")
+    public void testRegisterInvalidDataShowsSwalAlert(String fullName, String phone, String email,
+                                                      String password, String confirmPassword,
+                                                      String expectedAlertFragment) {
         registerPage.open(baseUrl);
-        registerPage.register(
-                "Phạm Thiện Quang",
-                "0987654321",
-                "quang_test_match@gmail.com",
-                "Quang@1234",
-                "Quang@Khac",
-                true
-        );
+        registerPage.register(fullName, phone, email, password, confirmPassword, true);
 
         String alertMsg = registerPage.getAlertMessage();
-        assertTrue(alertMsg.contains("Mật khẩu nhập lại không khớp"),
-                "Phải hiển thị cảnh báo mật khẩu xác nhận không khớp, nhận được: " + alertMsg);
+        Assert.assertTrue(alertMsg.contains(expectedAlertFragment),
+                "Thông báo SweetAlert2 không khớp mong đợi, nhận được: " + alertMsg);
+        Assert.assertTrue(registerPage.getCurrentUrl().contains("/register"),
+                "Đăng ký không hợp lệ vẫn phải ở lại trang /register");
     }
 
-    @Test
-    @DisplayName("TC_AUTH_12: Cảnh báo SweetAlert2 khi mật khẩu dưới 8 ký tự")
-    public void testRegisterShortPasswordShowsSwalWarning() {
-        registerPage.open(baseUrl);
-        registerPage.register(
-                "Phạm Thiện Quang",
-                "0987654321",
-                "quang_test_short@gmail.com",
-                "12345",
-                "12345",
-                true
-        );
-
-        String alertMsg = registerPage.getAlertMessage();
-        assertTrue(alertMsg.contains("tối thiểu 8 ký tự"),
-                "Phải hiển thị cảnh báo mật khẩu tối thiểu 8 ký tự, nhận được: " + alertMsg);
-    }
-
-    @Test
-    @DisplayName("TC_AUTH_08: Chặn submit bằng HTML5 validation khi chưa tick đồng ý điều khoản")
+    @Test(groups = "regression",
+            description = "TC_AUTH_08: Chặn submit khi chưa tick đồng ý điều khoản")
     public void testRegisterUncheckedTermsBlockedByHtml5Validation() {
         registerPage.open(baseUrl);
         registerPage.register(
@@ -89,29 +67,9 @@ public class RegisterTest extends BaseUiTest {
         );
 
         String validationMsg = registerPage.getAgreeTermsValidationMessage();
-        assertFalse(validationMsg.isEmpty(),
+        Assert.assertFalse(validationMsg.isEmpty(),
                 "Checkbox đồng ý điều khoản phải kích hoạt HTML5 required validation");
-        assertTrue(registerPage.getCurrentUrl().contains("/register"),
+        Assert.assertTrue(registerPage.getCurrentUrl().contains("/register"),
                 "Trang phải giữ nguyên tại /register khi chưa tick điều khoản");
-    }
-
-    @Test
-    @DisplayName("TC_AUTH_09: Báo lỗi từ Server khi đăng ký trùng SĐT/Email đã tồn tại")
-    public void testRegisterDuplicatePhoneShowsServerError() {
-        registerPage.open(baseUrl);
-        registerPage.register(
-                "Khách Hàng Trùng Dữ Liệu",
-                "0909999999",
-                "khach_vip@gmail.com",
-                "Quang@1234",
-                "Quang@1234",
-                true
-        );
-
-        String alertMsg = registerPage.getAlertMessage();
-        assertTrue(alertMsg.contains("Số điện thoại hoặc Email này đã tồn tại"),
-                "Server phải trả về lỗi trùng lặp SĐT/Email, nhận được: " + alertMsg);
-        assertTrue(registerPage.getCurrentUrl().contains("/register"),
-                "Đăng ký trùng lặp phải ở lại trang /register");
     }
 }

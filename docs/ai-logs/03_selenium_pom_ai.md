@@ -96,3 +96,48 @@ Sau khi đối chiếu code AI sinh ra với mã nguồn JSP và chạy kiểm t
      [INFO] Tests run: 90, Failures: 0, Errors: 0, Skipped: 0
      [INFO] BUILD SUCCESS (Total time: 54.840 s)
      ```
+
+---
+
+## 5. Nâng cấp Tuần 4: TestNG Framework, Data-Driven, Groups & Chụp ảnh lỗi (26/11/2026)
+
+### 5.1. Ngữ cảnh & Yêu cầu bổ sung (Y4 - Phần 2)
+* Nâng cấp bộ kiểm thử Selenium POM từ JUnit 5 sang **TestNG 7.10.2** để đáp ứng trọn vẹn tiêu chí **Y4** trong `README.md` và `HUONG_DAN_CHI_TIET_6_TUAN.md`:
+  1. Giữ nguyên song song bộ Unit Test JUnit 5 (`controllers/` — 76 test) và chạy bộ UI Selenium bằng **TestNG** (`ui/tests/`) qua cấu hình 2 execution trong `pom.xml` (`surefire-junit-platform` + `surefire-testng`).
+  2. Phân nhóm **`groups = {"smoke", "regression"}`** và ràng buộc chuỗi phụ thuộc **`dependsOnMethods`** cho luồng CRUD (`testCreateProductSuccess` → `testEditProductSuccess` → `testDeleteProductHardDeleteSuccess` trong `CrudTest`).
+  3. Triển khai **Data-Driven Testing (`@DataProvider`)**: `staffLoginData` (4 bộ tài khoản trong `LoginTest`) và `registerInvalidAlertData` (4 bộ dữ liệu biên/trùng lặp trong `RegisterTest`).
+  4. Triển khai **`DriverManager`** (`ThreadLocal<WebDriver>`) và **`TestListener implements ITestListener`** tự động chụp ảnh màn hình `.png` lưu vào `screenshots/` khi có test fail.
+  5. Tạo file điều phối **`testng.xml`** ở thư mục gốc dự án.
+
+### 5.2. Prompt nâng cấp TestNG gửi cho AI
+```text
+Hãy nâng cấp tầng ui/tests/ của dự án TEA POS từ JUnit 5 sang TestNG 7.10.2 nhưng vẫn giữ nguyên 5 file Unit Test JUnit 5 trong controllers/:
+- Cấu hình pom.xml với maven-surefire-plugin chạy cả JUnit 5 (default-test) và TestNG suite testng.xml (testng-ui-tests).
+- Tạo DriverManager (ThreadLocal) và TestListener (ITestListener) chụp ảnh màn hình vào thư mục screenshots/ tại onTestFailure().
+- Chuyển BaseUiTest, LoginTest, RegisterTest, CrudTest sang TestNG:
+  + Dùng SkipException trong @BeforeMethod khi không có Tomcat để giữ xanh CI/CD.
+  + LoginTest: dùng @DataProvider("staffLoginData"), gắn groups smoke/regression.
+  + RegisterTest: dùng @DataProvider("registerInvalidAlertData"), gắn groups regression.
+  + CrudTest: gắn groups smoke/regression và dependsOnMethods cho luồng Thêm -> Sửa -> Hard Delete.
+- Tạo testng.xml ở gốc dự án đăng ký TestListener và 3 class test UI.
+```
+
+### 5.3. Tinh chỉnh kỹ thuật & Nghiệm thu Tuần 4
+* **Tách 2 execution Surefire rõ ràng:** `default-test` chỉ quét `**/controllers/*Test.java`, còn `testng-ui-tests` chạy file `testng.xml`, nhờ đó cả `mvn test`, `mvn test -Dgroups=smoke`, và `mvn test -Dtest=LoginTest#...` đều thực thi mượt mà không bị xung đột provider.
+* **Minh chứng tự động chụp ảnh lỗi (`ITestListener`):** Khi giả lập sai mật khẩu qua `-Dtest=LoginTest#testStaffLoginDataDriven -Dtest.admin.pass=WrongPassDemoFail`, `TestListener.onTestFailure` đã tự động lưu ảnh:
+  * `screenshots/testStaffLoginDataDriven_20261126_215317_513.png` (`48.510 bytes`).
+* **Kết quả kiểm thử lọc nhóm Smoke (`mvn test "-Dgroups=smoke"`):**
+  ```text
+  [INFO] Running TestSuite
+  [INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 22.11 s -- in TestSuite
+  [INFO] BUILD SUCCESS (Total time: 26.829 s)
+  ```
+* **Kết quả chạy toàn bộ Suite trên Chrome 158 + Tomcat 11 (`mvn test`):**
+  ```text
+  [INFO] default-test (JUnit 5 controllers): Tests run: 76, Failures: 0, Errors: 0, Skipped: 0
+  [INFO] testng-ui-tests (TestNG testng.xml): Tests run: 18, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 64.33 s
+  [INFO] BUILD SUCCESS (Total time: 01:09 min)
+  ```
+* **Kết quả chế độ CI / Offline (khi không có máy chủ Tea POS):**
+  * JUnit 5 `controllers/`: **76/76 PASS**.
+  * TestNG `testng.xml`: tự động skip sạch qua `SkipException` (`Failures: 0, Errors: 0`, `BUILD SUCCESS`).
